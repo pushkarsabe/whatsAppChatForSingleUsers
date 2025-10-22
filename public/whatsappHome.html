@@ -6,71 +6,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Desktop Clone</title>
     <link rel="stylesheet" href="whatsappHome.css">
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+
 </head>
 
 <body>
     <div class="whatsapp-container">
         <div class="sidebar">
             <header class="sidebar-header">
-                <div class="user-avatar-placeholder"></div>
+                <div class="user-avatar-placeholder" id="user-avatar-placeholder" title="User Profile"></div>
+
                 <div class="header-icons">
-                    <button class="icon-button"><img
-                            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xMiAyQzYuNDc3IDIgMiA2LjQ3NyAyIDEyczQuNDc3IDEwIDEwIDEwIDEwLTQuNDc3IDEwLTEwUzE3LjUzMyAyIDEyIDJ6TTggMjAuNDg3Yy0yLjA1MS0xLjQ0OC0zLjUwNy0zLjc4OS0zLjUwNy02LjQ1Nkw4IDcuMTIxVjIwLjQ4N3ptNC0xLjk5N3YtMy41NjhoMS41MjVsLjQ4NSAzLjUxN2MtLjY3OC4zMTQtMS4zOTQuNDU2LTIuMDA5LjA1MXptNi45NTQtLjk3MWMtLjA2Ny4zNDUtLjEzNy42ODUtLjIxMSAxLjAyLS4zOTUuMTU4LS44MTUuMjgyLTEuMjUuMzg4VjEzLjUwNGgtMS4zNTRjLS4xNjQtLjM2LS4zMzctLjc0My0uNTE1LTEuMTQ1bC0uNTA0LTEuMDkyYzQuNDAyLTIuMzE2IDMuNTM2LTkuMTMzLjAwNi05LjMzN0MxNS41MDctLjEwOCAxOC44MzIgMS42MTEgMjAuOTU0IDVjLTEuMDM1IDIuNzAzLTAuNzYyIDUuNjk2LS40MjkgOC40NzF6TTguMjk0IDExLjY5NmMtLjM1MS4zOTctLjY5Ny43OTctMS4wMzggMS4yLS4zNDEuNDA0LS42NzQuODA5LTEuMDAxIDEuMjE0VjkuNDI1TDcuNDI2IDExLjI5TDIuOTk2IDcuMTMyQzQuOTg2IDQuNTQ1IDcuMjkzIDIuMzM0IDkuNTk0IDEuMTUxVjcuNTg4bC44NjktMi4wMjdjLjY0Ni0xLjUxIDEuNTUtMi42NiAyLjQyOC0zLjU2Ny0uMTI3IDMuMzgyLS44NDEgNi43MTEtMi4xMzcgOS42MTktLjYyMyAxLjM1LS45NDggMi41My0xLjE3MyAzLjUxNGMwLjA1My4zMS4xMTguNjIuMTk0LjkyOC0xLjAyOC0yLjUyLTEuNjQ2LTUuMDg4LTEuODg4LTcuOTQzWiIvPjwvc3ZnPgo="
-                            alt="New Chat" /></button>
-                    <button class="icon-button menu-button"><img
-                            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik01IDhoMnYySDV6TTE1IDhoMnYySDE1ek01IDE0aDJ2Mkg1ek0xNSAxNGgydjJIMTV6TTggMTRoMnYySDh6TTE4IDE0aDJ2MkgxOHpNOCAxOGgydjJIMDh6TTIgMjFoMjB2LTZoLTJ2NGgtMTZ2LTRIMnptMjAtOEg0VjFoMjh2MnYySDJWNmgxOHoiLz48L3N2Zz4K"
-                            alt="Menu" /></button>
+
+                    <button class="icon-button" id="notification-icon" title="Pending Chat Requests">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0zIDNoMTh2MThIM3YtMTh6TTUgMjFoMTRWNWg0VjFoLTI2VjUuMDZMMjIgMjFsLTIuMDY1LS4xNjVMMTMgMjFsLTVsMi4xMy0yLjEzTDUgMTd6Ii8+PC9zdmc+"
+                            alt="Notifications" />
+                        <span class="notification-count" id="notification-count"></span>
+                    </button>
+
+                    <button class="icon-button" id="new-chat-btn" title="Start New Chat">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjNjY3NzgxIiBkPSJNMTggMnY0bC0xMCAxMHY0aDRsMTAtMTB2NC4wMDA1bDMuMDAwNS0zLjAwMDV2LTkuMDAwNWwtNy42MTUtNy45NDktMi4zODYgMi4zNTktMy4wMDIgMy4wMDJ2LTNsNS41LTEwLjUwMDVMMTggMnpNMTggMTMuOTk5NXYtNC44MTE1bDMtM3Y0LjgxMTVjLS42OTkgLjQxNC0xLjM2NS44NTUtMiAwLjY1MTZtLTIuNTE2LS40MTFsLTMuNDg0LTMuNDg0LS40NzYuNDc2LS44MjggLjgxMmMtLjM1LjM5Ny0uNjk2Ljc5Ny0xLjAzNyAxLjIuMDY5IDAtLjE2OS0uMTQ0LjI2NC0uMjEzVjIwLjk5OTVsLTItMS43NTR2LTMuMjQ1NWwtMi0xLjk2OCAzLSN2LS4zODRjLS41Mi0xLjMtLjgyNi0yLjQ3NC0xLjA0NS0zLjQ1NmwuMDgtLjI2NEw0LjY0OSAzLjUwNTUgOCAxLjk5OTVMMTMuNDk5NSAxMnYyLjk5OTVsLS4wMTYgLjAxNnoiLz48L3N2Zz4="
+                            alt="New Chat" />
+                    </button>
+
+                    <button class="icon-button" id="logout-btn" title="Logout">
+                        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xMiAyQzYuNDc3IDIgMiA2LjQ3NyAyIDEyczQuNDc3IDEwIDEwIDEwIDEwLTQuNDc3IDEwLTEwUzE3LjUzMyAyIDEyIDJ6TTggMjAuNDg3Yy0yLjA1MS0xLjQ0OC0zLjUwNy0zLjc4OS0zLjUwNy02LjQ1Nkw4IDcuMTIxVjIwLjQ4N3ptNC0xLjk5N3YtMy41NjhoMS41MjVsLjQ4NSAzLjUxN2MtLjY3OC4zMTQtMS4zOTQuNDU2LTIuMDA5LjA1MXptNi45NTQtLjE3MWMtLjA2Ny4zNDUtLjEzNy42ODUtLjIxMSAxLjAyLS4zOTUuMTU4LS44MTUuMjgyLTEuMjUuMzg4VjEzLjUwNGgtMS4zNTRjLS4xNjQtLjM2LS4zMzctLjc0My0uNTE1LTEuMTQ1bC0uNTA0LTEuMDkyYzQuNDAyLTIuMzE2IDMuNTM2LTkuMTMzLjAwNi05LjMzN0MxNS41MDctLjEwOCAxOC44MzIgMS42MTEgMjAuOTU0IDVjLTEuMDM1IDIuNzAzLTAuNzYyIDUuNjk2LS40MjkgOC40NzF6TTguMjk0IDExLjY5NmMtLjM1MS4zOTctLjY5Ny43OTctMS4wMzggMS4yLS4zNDEuNDA0LS42NzQuODA5LTEuMDAxIDEuMjE0VjkuNDI1TDcuNDI2IDExLjI5TDIuOTk2IDcuMTMyQzQuOTg2IDQuNTQ1IDcuMjkzIDIuMzM0IDkuNTk0IDEuMTUxVjcuNTg4bC44NjktMi4wMjdjLjY0Ni0xLjUxIDEuNTUtMi42NiAyLjQyOC0zLjU2Ny0uMTI3IDMuMzgyLS44NDEgNi43MTEtMi4xMzcgOS42MTktLjYyMyAxLjM1LS45NDggMi41My0xLjE3MyAzLjUxNGMwLjA1My4zMS4xMTguNjIuMTk0LjkyOC0xLjAyOC0yLjUyLTEuNjQ2LTUuMDg4LTEuODg4LTcuOTQzWiIvPjwvc3ZnPgo="
+                            alt="Menu" />
+                    </button>
                 </div>
             </header>
+
+            <div class="new-chat-modal" id="new-chat-modal">
+                <div class="modal-header">New chat</div>
+                <ul class="modal-contacts-list" id="fixed-contacts-list">
+                    <li class="new-group-item">
+                        <div class="contact-avatar new-group-icon">👤</div>
+                        <div class="contact-name-info">
+                            <div class="name">New contact</div>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="modal-contacts-list dynamic-list" id="dynamic-contacts-list">
+                </ul>
+            </div>
+
+            <div class="new-chat-modal request-modal" id="notification-modal">
+                <div class="modal-header">Chat Requests</div>
+                <ul class="modal-contacts-list" id="requests-list">
+                    <li>No new requests.</li>
+                </ul>
+            </div>
 
             <div class="search-bar">
                 <input type="text" placeholder="Search or start a new chat">
             </div>
 
-            <div class="chats-list">
-                <div class="chat-item active">
-                    <div class="chat-avatar-placeholder"></div>
-                    <div class="chat-info">
-                        <div class="chat-name">Mommy ❤️</div>
-                        <div class="last-message">✓✓ B</div>
-                    </div>
-                </div>
+            <div class="chats-list" id="friends-chats-list">
+                <div class="empty-chat-placeholder">Loading chats...</div>
             </div>
         </div>
 
-        <div class="main-content">
-            <header class="chat-header">
+        <div class="main-content" id="main-chat-content">
+            <header class="chat-header" id="chat-header-default">
                 <div class="contact-info">
                     <div class="contact-avatar-placeholder"></div>
-                    <div class="contact-name">Mommy ❤️</div>
+                    <div class="contact-name">WhatsApp Web Clone</div>
                 </div>
                 <div class="chat-header-icons">
                     <button class="icon-button"><img
-                            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xMiAyQzYuNDc3IDIgMiA2LjQ3NyAyIDEyczQuNDc3IDEwIDEwIDEwIDEwLTQuNDc3IDEwLTEwUzE3LjUzMyAyIDEyIDJ6TTggMjAuNDg3Yy0yLjA1MS0xLjQ0OC0zLjUwNy0zLjc4OS0zLjUwNy02LjQ1Nkw4IDcuMTIxVjIwLjQ4N3ptNC0xLjk5N3YtMy41NjhoMS41MjVsLjQ4NSAzLjUxN2MtLjY3OC4zMTQtMS4zOTQuNDU2LTIuMDA5LjA1MXptNi45NTQtLjk3MWMtLjA2Ny4zNDUtLjEzNy42ODUtLjIxMSAxLjAyLS4zOTUuMTU4LS44MTUuMjgyLTEuMjUuMzg4VjEzLjUwNGgtMS4zNTRjLS4xNjQtLjM2LS4zMzctLjc0My0uNTE1LTEuMTQ1bC0uNTA0LTEuMDkyYzQuNDAyLTIuMzE2IDMuNTM2LTkuMTMzLjAwNi05LjMzN0MxNS41MDctLjEwOCAxOC44MzIgMS42MTEgMjAuOTU0IDVjLTEuMDM1IDIuNzAzLTAuNzYyIDUuNjk2LS40MjkgOC40NzF6TTguMjk0IDExLjY5NmMtLjM1MS4zOTctLjY5Ny43OTctMS4wMzggMS4yLS4zNDEuNDA0LS42NzQuODA5LTEuMDAxIDEuMjE0VjkuNDI1TDcuNDI2IDExLjI5TDIuOTk2IDcuMTMyQzQuOTg2IDQuNTQ1IDcuMjkzIDIuMzM0IDkuNTk0IDEuMTUxVjcuNTg4bC44NjktMi4wMjdjLjY0Ni0xLjUxIDEuNTUtMi42NiAyLjQyOC0zLjU2Ny0uMTI3IDMuMzgyLS44NDEgNi43MTEtMi4xMzcgOS42MTktLjYyMyAxLjM1LS45NDggMi41My0xLjE3MyAzLjUxNGMwLjA1My4zMS4xMTguNjIuMTk0LjkyOC0xLjAyOC0yLjUyLTEuNjQ2LTUuMDg4LTEuODg4LTcuOTQzWiIvPjwvc3ZnPgo="
+                            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0xMiAyQzYuNDc3IDIgMiA2LjQ3NyAyIDEyczQuNDc3IDEwIDEwIDEwIDEwLTQuNDc3IDEwLTEwUzE3LjUzMyAyIDEyIDJ6TTggMjAuNDg3Yy0yLjA1MS0xLjQ0OC0zLjUwNy0zLjc4OS0zLjUwNy02LjQ1Nkw4IDcuMTIxVjIwLjQ4N3ptNC0xLjk5N3YtMy41NjhoMS41MjVsLjQ4NSAzLjUxN2MtLjY3OC4zMTQtMS4zOTQuNDU2LTIuMDA5LjA1MXptNi45NTQtLjE3MWMtLjA2Ny4zNDUtLjEzNy42ODUtLjIxMSAxLjAyLS4zOTUuMTU4LS44MTUuMjgyLTEuMjUuMzg4VjEzLjUwNGgtMS4zNTRjLS4xNjQtLjM2LS4zMzctLjc0My0uNTE1LTEuMTQ1bC0uNTA0LTEuMDkyYzQuNDAyLTIuMzE2IDMuNTM2LTkuMTMzLjAwNi05LjMzN0MxNS41MDctLjEwOCAxOC44MzIgMS42MTEgMjAuOTU0IDVjLTEuMDM1IDIuNzAzLTAuNzYyIDUuNjk2LS40MjkgOC40NzF6TTguMjk0IDExLjY5NmMtLjM1MS4zOTctLjY5Ny43OTctMS4wMzggMS4yLS4zNDEuNDA0LS42NzQuODA5LTEuMDAxIDEuMjE0VjkuNDI1TDcuNDI2IDExLjI5TDIuOTk2IDcuMTMyQzQuOTg2IDQuNTQ1IDcuMjkzIDIuMzM0IDkuNTk0IDEuMTUxVjcuNTg4bC44NjktMi4wMjdjLjY0Ni0xLjUxIDEuNTUtMi42NiAyLjQyOC0zLjU2Ny0uMTI3IDMuMzgyLS44NDEgNi43MTEtMi4xMzcgOS42MTktLjYyMyAxLjM1LS45NDggMi41My0xLjE3MyAzLjUxNGMwLjA1My4zMS4xMTguNjIuMTk0LjkyOC0xLjAyOC0yLjUyLTEuNjQ2LTUuMDg4LTEuODg4LTcuOTQzWiIvPjwvc3ZnPgo="
                             alt="More Options" /></button>
                 </div>
             </header>
 
-            <div class="chat-messages">
-
-                <div class="message sent">H</div>
-                <div class="message sent">G</div>
-                <div class="message sent">H</div>
-                <div class="message sent">Bh</div>
-                <div class="message sent">B</div>
-
-                <div class="message image-card received">
-                    <img src="placeholder-image-laxmi.jpg" alt="Devotional Image" class="chat-image-content">
-                    <div class="image-timestamp">1:37 PM</div>
+            <div id="chat-window-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message sent">Welcome to the chat! Select a friend to start.</div>
                 </div>
 
-                <div class="message-timestamp sent-timestamp">12:11 PM</div>
-            </div>
-
-            <div class="message-input-area">
-                <button class="emoji-button">😊</button>
-                <input type="text" placeholder="Type a message">
-                <button class="send-button">🎤</button>
+                <div class="message-input-area" id="message-input-area">
+                    <button class="emoji-button">😊</button>
+                    <input type="text" placeholder="Type a message" id="message-input">
+                    <button class="send-button" id="send-message-btn">▶️</button>
+                </div>
             </div>
         </div>
     </div>

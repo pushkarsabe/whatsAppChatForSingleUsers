@@ -15,34 +15,37 @@ const Chat = require('./model/chat');
 const Group = require("./model/group");
 
 const userRoute = require('./routes/user');
-// const chatRoute = require('./routes/chat');
-
+const chatRoute = require('./routes/chat');
+const groupRoute = require('./routes/group');
 
 //user signup and login
 app.use("/user", userRoute);
 
 //chats
-// app.use("/chat", chatRoute);
+app.use("/chat", chatRoute);
+
+//chats
+app.use("/groups", groupRoute);
 
 // Create an HTTP server for Socket.IO and Express
 const server = http.createServer(app);
 
 // Import the Socket.IO initialization function
-// const { initializeSocket } = require('./socket');
+const { initializeSocket } = require('./socket');
 
 // Initialize Socket.IO
-// initializeSocket(server);
+initializeSocket(server);
 
 // User and Chat relationship
 Chat.belongsTo(Group, { foreignKey: 'GroupId' });
+Group.hasMany(Chat, { foreignKey: 'GroupId' });
 
 Chat.belongsTo(User, { foreignKey: 'SenderId' });
-
-User.belongsToMany(Group, { foreignKey: 'UserId' });
+User.hasMany(Chat, { foreignKey: 'SenderId' });
 
 let runServer = async () => {
     try {
-        // await sequelize.sync();
+        await sequelize.sync();
         console.log(`server started running at port ${process.env.PORT}`);
         server.listen(process.env.PORT || 3000);
     }

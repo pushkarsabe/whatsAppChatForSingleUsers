@@ -1,4 +1,5 @@
 const Chat = require('../model/chat');
+const User = require('../model/user');
 const Group = require('../model/group');
 const { sendMessageToGroup } = require('../socket');  // Updated path to socket.js
 
@@ -12,9 +13,9 @@ exports.postLoginAddChat = async (req, res) => {
         console.log('groupId = ' + groupId);
 
         let chatResponse = await Chat.create({
-            chatName: chat,
-            groupId: groupId,
-            signupId: req.user.id,
+            chat: chat,
+            GroupId: groupId,
+            SenderId: req.user.id
         })
 
         // Emit the new chat message to the group
@@ -51,9 +52,17 @@ exports.getChatsByGroup = async (req, res) => {
 
     try {
         const chats = await Chat.findAll({
-            where: { groupId: groupId },
-            include: [{ model: Group, attributes: ['groupName'] }]
+            where: { GroupId: groupId },
+
+            include:
+                [
+                    { model: Group, attributes: ['name'] },
+                    { model: User, attributes: ['id', 'name'] }
+                ],
+
+            order: [['createdAt', 'ASC']]
         });
+
         console.log("chats = " + JSON.stringify(chats));
 
         res.status(200).json({ success: true, allChatData: chats });
@@ -64,8 +73,8 @@ exports.getChatsByGroup = async (req, res) => {
     }
 }
 
-exports.addFile = async(req,res)=>{
+exports.addFile = async (req, res) => {
 
+    res.status(501).json({ message: "File upload not implemented yet." });
 
-    
 }

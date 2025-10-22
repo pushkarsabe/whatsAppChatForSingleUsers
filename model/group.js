@@ -9,12 +9,20 @@ const Group = sequelize.define('group', {
         allowNull: false,
         primaryKey: true
     },
-    name: {
-        type: Sequelize.STRING
-    },
-    isGroupChat: {
+    groupMembers: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+        defaultValue: '[]'
+    }
+    ,
+    isPending: {
         type: Sequelize.BOOLEAN,
-        default : false
+        defaultValue: true,
+        allowNull: false
+    },
+    isDeleted: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
     }
 });
 
