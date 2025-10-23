@@ -22,7 +22,7 @@ let CURRENT_USER_ID = null;
 let CURRENT_GROUP_ID = null;
 let socket = null; // WebSocket connection instance
 
-let PENDING_REQUESTS = []; // Array to store requests
+let PENDING_REQUESTS = []; // Array to store incoming requests
 
 // Utility: Gets the first letter for avatar
 function getAvatarInitial(name) {
@@ -122,7 +122,7 @@ async function acceptRequest(groupId) {
         PENDING_REQUESTS = PENDING_REQUESTS.filter(r => r.groupId !== groupId);
         updateNotificationCount();
         notificationModal.classList.remove('active');
-        await refreshSidebarChats(token);
+        await refreshSidebarChats(token); // Refresh sidebar to show the now-active chat
 
     } catch (error) {
         alert("Error accepting request: " + error.message);
@@ -319,9 +319,11 @@ async function sendFriendRequest(receiverId, receiverName) {
         // Refresh the sidebar to show the new or existing chat
         await refreshSidebarChats(token);
 
-        // Automatically open the new chat 
+        // Automatically open the new chat (it will be pending and input disabled by handleChatSelection)
         if (data.group && data.group.id) {
-            handleChatSelection(data.group.id, receiverName);
+            // NOTE: data.group will return { id, status: 'pending' }
+            // We pass the pending status for the new chat
+            handleChatSelection(data.group.id, receiverName, true);
         }
 
     } catch (error) {
@@ -335,7 +337,8 @@ async function sendFriendRequest(receiverId, receiverName) {
 // UI RENDERING AND EVENTS
 // =========================================================================
 
-// NEW: FUNCTION TO REFRESH THE SIDEBAR (Calls new backend endpoint)
+// UPDATED: FUNCTION TO REFRESH THE SIDEBAR
+// Now separates active chats from incoming pending requests.
 async function refreshSidebarChats(token) {
     friendsChatsList.innerHTML = '<div class="empty-chat-placeholder" style="padding: 15px; color: var(--text-secondary);">Loading chats...</div>';
 
@@ -349,7 +352,35 @@ async function refreshSidebarChats(token) {
         const data = await response.json();
 
         if (data && data.chats) {
-            renderFriendsList(data.chats);
+
+            const activeChatsAndOutgoingRequests = [];
+            PENDING_REQUESTS = []; // Clear and rebuild incoming requests on load
+
+            data.chats.forEach(chat => {
+
+                if (chat.isPending) {
+                    // All pending chats sent from the backend are either outgoing requests (initiator)
+                    // or incoming requests (recipient). Given the UX goal, we assume any pending chat
+                    // that should be accepted/rejected belongs in the PENDING_REQUESTS array. 
+                    // This moves ALL pending chats (both incoming/outgoing) to the modal UI 
+                    // until the backend is updated to return an initiatorId for better filtering.
+
+                    PENDING_REQUESTS.push({
+                        groupId: chat.id,
+                        senderId: chat.friendId, // The other person
+                        senderName: chat.name
+                    });
+
+                } else {
+                    // Only render active chats in the sidebar
+                    activeChatsAndOutgoingRequests.push(chat);
+                }
+            });
+
+            // Render only active chats (and outgoing requests, if any were incorrectly filtered above)
+            renderFriendsList(activeChatsAndOutgoingRequests);
+            updateNotificationCount(); // Update the red badge
+
         }
 
     } catch (error) {
@@ -364,7 +395,13 @@ function renderDiscoverUsers(users) {
     // FIX: Clear all previous dynamic list items to prevent duplication
     dynamicContactsList.innerHTML = '';
 
-    const filteredUsers = users.filter(user => user.id !== CURRENT_USER_ID);
+    // 1. Get the IDs of users already in active chats
+    const activeFriendIds = getCurrentFriendIds();
+
+    const filteredUsers = users.filter(user => {
+        // 2. Filter out the logged-in user AND any user already in the sidebar
+        return user.id !== CURRENT_USER_ID && !activeFriendIds.has(user.id);
+    });
 
     filteredUsers.forEach(user => {
         const listItem = document.createElement('li');
@@ -402,9 +439,14 @@ function renderFriendsList(chats) {
     chats.forEach(chat => {
         const chatItem = document.createElement('div');
         chatItem.classList.add('chat-item');
+        // Add active style to initiator-pending requests if they are still in the list
+        if (chat.isPending) {
+            chatItem.classList.add('pending-request-item');
+        }
 
         chatItem.dataset.groupId = chat.id;
         chatItem.dataset.friendId = chat.friendId || null;
+        chatItem.dataset.isPending = chat.isPending || false; // Store status
 
         const initial = getAvatarInitial(chat.name);
 
@@ -418,7 +460,8 @@ function renderFriendsList(chats) {
 
         // Event handler to load chat history
         chatItem.addEventListener('click', () => {
-            handleChatSelection(chat.id, chat.name);
+            // Pass the isPending status from the chat object
+            handleChatSelection(chat.id, chat.name, chat.isPending || false);
             document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
             chatItem.classList.add('active');
         });
@@ -449,28 +492,44 @@ function renderChatHistory(chatData) {
 }
 
 
-// Handle chat selection and history loading
-async function handleChatSelection(groupId, friendName) {
+// UPDATED: Handle chat selection and history loading (Chat Restriction Logic)
+async function handleChatSelection(groupId, friendName, isPending) {
     // If the user clicks the currently active chat, do nothing.
     if (CURRENT_GROUP_ID === groupId) return;
 
-    // 1. Update state
-    CURRENT_GROUP_ID = groupId;
+    // Get the message input area container for control
+    const messageInputArea = document.getElementById('message-input-area');
 
-    // 2. Update UI header
+    // 1. Update UI header
     const headerElement = document.getElementById('chat-header-default').querySelector('.contact-name');
     headerElement.textContent = friendName;
     chatMessagesContainer.innerHTML = '<div class="message sent">Loading chat history...</div>';
 
+    // 2. PENDING STATUS CHECK - Disable chat functionality for pending groups
+    if (isPending) {
+        chatMessagesContainer.innerHTML = '<div class="message sent" style="background-color: #f7e0e0; color: #a10000;">Chat is pending acceptance. You cannot send messages yet.</div>';
+        messageInputArea.style.pointerEvents = 'none'; // Disable input area
+        messageInputArea.style.opacity = 0.5;
+        CURRENT_GROUP_ID = null; // IMPORTANT: Prevent sendMessage from working
+        return;
+    } else {
+        messageInputArea.style.pointerEvents = 'auto'; // Enable input area
+        messageInputArea.style.opacity = 1;
+    }
+
+
+    // 3. Update state
+    CURRENT_GROUP_ID = groupId;
+
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // 3. Join the correct WebSocket room/group
+    // 4. Join the correct WebSocket room/group
     if (socket) {
         socket.emit('join-group', groupId);
     }
 
-    // 4. Fetch the chat history
+    // 5. Fetch the chat history
     const data = await fetchChatHistory(groupId, token);
 
     if (data && data.allChatData) {
@@ -531,7 +590,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Socket.io client library ('/socket.io/socket.io.js') failed to load.");
     }
 
-    // 2. Load the user's active chats
+    // 2. Load the user's active chats and populate PENDING_REQUESTS
     refreshSidebarChats(token);
 });
 
@@ -551,40 +610,4 @@ function getCurrentFriendIds() {
         }
     });
     return friendIds;
-}
-
-// Renders non-friends in the modal (Discover list)
-function renderDiscoverUsers(users) {
-    // FIX: Clear all previous dynamic list items to prevent duplication
-    dynamicContactsList.innerHTML = '';
-
-    // 1. Get the IDs of users already in active chats
-    const activeFriendIds = getCurrentFriendIds();
-
-    const filteredUsers = users.filter(user => {
-        // 2. Filter out the logged-in user AND any user already in the sidebar
-        return user.id !== CURRENT_USER_ID && !activeFriendIds.has(user.id);
-    });
-
-    filteredUsers.forEach(user => {
-        const listItem = document.createElement('li');
-        listItem.dataset.userId = user.id;
-
-        const initial = getAvatarInitial(user.name);
-
-        listItem.innerHTML = `
-            <div class="contact-avatar">${initial}</div>
-            <div class="contact-name-info">
-                <div class="name">${user.name}</div>
-                <div class="status">${user.phoneNumber}</div>
-            </div>
-        `;
-
-        // Attach listener to call the friend request endpoint
-        listItem.addEventListener('click', () => {
-            sendFriendRequest(user.id, user.name);
-        });
-
-        dynamicContactsList.appendChild(listItem);
-    });
 }

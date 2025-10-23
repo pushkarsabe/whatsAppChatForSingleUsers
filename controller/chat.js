@@ -12,6 +12,19 @@ exports.postLoginAddChat = async (req, res) => {
         console.log('user chat = ' + chat);
         console.log('groupId = ' + groupId);
 
+        // --- NEW: CHECK GROUP STATUS ---
+        const group = await Group.findByPk(groupId);
+
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found.' });
+        }
+
+        // Assuming 'isPending: true' means it's a request, not an active chat
+        if (group.isPending) {
+            return res.status(403).json({ message: 'Cannot send message to a pending chat request.' });
+        }
+        // --- END NEW CHECK ---
+
         let chatResponse = await Chat.create({
             chat: chat,
             GroupId: groupId,
